@@ -34,10 +34,10 @@ function createWindow() {
   });
 
   const devUrl = process.env.VITE_DEV_SERVER_URL;
-  if (devUrl) {
+  if (!app.isPackaged && devUrl) {
     mainWindow.loadURL(devUrl);
   } else {
-    mainWindow.loadFile(path.join(__dirname, "../dist/index.html"));
+    mainWindow.loadFile(path.join(app.getAppPath(), "dist", "index.html"));
   }
 }
 

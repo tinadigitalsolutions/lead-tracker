@@ -59,13 +59,14 @@
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
+      "electron/**/*",
       "package.json"
     ],
     "directories": {
       "output": "release"
     },
     "extraMetadata": {
-      "main": "dist-electron/electron/main.js"
+      "main": "electron/main.cjs"
     }
   }
 }

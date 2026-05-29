@@ -1,11 +1,201 @@
-require("dotenv/config");
-
 const path = require("path");
 const { app, BrowserWindow, ipcMain, shell } = require("electron");
 const { google } = require("googleapis");
 const http = require("http");
+const dotenv = require("dotenv");
 
 const fs = require("fs");
+
+// Load env vars from common locations for packaged and dev runs.
+const envPaths = [
+    path.join(process.cwd(), ".env"),
+    path.join(app.getPath("userData"), ".env"),
+    path.join(app.getAppPath(), ".env")
+];
+
+for (const envPath of envPaths) {
+    if (fs.existsSync(envPath)) {
+        dotenv.config({ path: envPath, override: false });
+    }
+}
+
+const requiredEnvKeys = [
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GOOGLE_SHEET_ID",
+    "GOOGLE_CALENDAR_ID"
+];
+
+function getMissingEnvKeys() {
+    return requiredEnvKeys.filter((key) => !process.env[key] || !String(process.env[key]).trim());
+}
+
+function writeUserEnvFile(values) {
+    const userEnvPath = path.join(app.getPath("userData"), ".env");
+    const envContent = [
+        `GOOGLE_CLIENT_ID=${values.GOOGLE_CLIENT_ID}`,
+        `GOOGLE_CLIENT_SECRET=${values.GOOGLE_CLIENT_SECRET}`,
+        `GOOGLE_SHEET_ID=${values.GOOGLE_SHEET_ID}`,
+        `GOOGLE_CALENDAR_ID=${values.GOOGLE_CALENDAR_ID || "primary"}`
+    ].join("\n") + "\n";
+
+    fs.writeFileSync(userEnvPath, envContent, "utf8");
+    dotenv.config({ path: userEnvPath, override: true });
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
+function buildEnvSetupHtml() {
+    const defaults = {
+        GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || "",
+        GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || "",
+        GOOGLE_SHEET_ID: process.env.GOOGLE_SHEET_ID || "",
+        GOOGLE_CALENDAR_ID: process.env.GOOGLE_CALENDAR_ID || "primary"
+    };
+
+    return `<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Lead Tracker Setup</title>
+    <style>
+      body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: #f5f6f8; margin: 0; }
+      .card { max-width: 640px; margin: 24px auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 14px; padding: 18px; }
+      h1 { margin: 0 0 10px; font-size: 20px; }
+      p { margin: 0 0 14px; color: #4b5563; font-size: 13px; }
+      label { display: block; margin: 10px 0 4px; font-size: 12px; font-weight: 700; color: #374151; }
+      input { width: 100%; box-sizing: border-box; padding: 8px 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 13px; }
+      .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
+      button { border: 1px solid #d1d5db; background: #fff; border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 13px; }
+      button.primary { background: #111827; border-color: #111827; color: #fff; }
+      .error { color: #b91c1c; min-height: 18px; font-size: 12px; margin-top: 8px; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>Complete Setup</h1>
+      <p>Enter your Google configuration. Values are stored locally for this device.</p>
+      <form id="env-form">
+        <label>GOOGLE_CLIENT_ID *</label>
+        <input id="GOOGLE_CLIENT_ID" value="${escapeHtml(defaults.GOOGLE_CLIENT_ID)}" required />
+
+        <label>GOOGLE_CLIENT_SECRET *</label>
+        <input id="GOOGLE_CLIENT_SECRET" value="${escapeHtml(defaults.GOOGLE_CLIENT_SECRET)}" required />
+
+        <label>GOOGLE_SHEET_ID *</label>
+        <input id="GOOGLE_SHEET_ID" value="${escapeHtml(defaults.GOOGLE_SHEET_ID)}" required />
+
+        <label>GOOGLE_CALENDAR_ID *</label>
+        <input id="GOOGLE_CALENDAR_ID" value="${escapeHtml(defaults.GOOGLE_CALENDAR_ID)}" required />
+
+        <div class="error" id="error"></div>
+        <div class="actions">
+          <button type="button" id="cancel">Cancel</button>
+          <button class="primary" type="submit">Save and Continue</button>
+        </div>
+      </form>
+    </div>
+    <script>
+      const { ipcRenderer } = require('electron');
+      const form = document.getElementById('env-form');
+      const error = document.getElementById('error');
+      const cancel = document.getElementById('cancel');
+
+      cancel.addEventListener('click', async () => {
+        await ipcRenderer.invoke('env:cancel');
+      });
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        error.textContent = '';
+
+        const payload = {
+          GOOGLE_CLIENT_ID: document.getElementById('GOOGLE_CLIENT_ID').value.trim(),
+          GOOGLE_CLIENT_SECRET: document.getElementById('GOOGLE_CLIENT_SECRET').value.trim(),
+          GOOGLE_SHEET_ID: document.getElementById('GOOGLE_SHEET_ID').value.trim(),
+          GOOGLE_CALENDAR_ID: document.getElementById('GOOGLE_CALENDAR_ID').value.trim() || 'primary'
+        };
+
+        const response = await ipcRenderer.invoke('env:save', payload);
+        if (!response.ok) {
+          error.textContent = response.error || 'Could not save configuration.';
+        }
+      });
+    </script>
+  </body>
+</html>`;
+}
+
+function openEnvSetupWindow() {
+    return new Promise((resolve) => {
+        let finished = false;
+        const setupWindow = new BrowserWindow({
+            width: 720,
+            height: 560,
+            resizable: false,
+            minimizable: false,
+            maximizable: false,
+            title: "Lead Tracker Setup",
+            webPreferences: {
+                nodeIntegration: true,
+                contextIsolation: false
+            }
+        });
+
+        const cleanup = () => {
+            ipcMain.removeHandler("env:save");
+            ipcMain.removeHandler("env:cancel");
+        };
+
+        ipcMain.handle("env:save", async (_event, payload) => {
+            const values = {
+                GOOGLE_CLIENT_ID: String(payload?.GOOGLE_CLIENT_ID || "").trim(),
+                GOOGLE_CLIENT_SECRET: String(payload?.GOOGLE_CLIENT_SECRET || "").trim(),
+                GOOGLE_SHEET_ID: String(payload?.GOOGLE_SHEET_ID || "").trim(),
+                GOOGLE_CALENDAR_ID: String(payload?.GOOGLE_CALENDAR_ID || "").trim() || "primary"
+            };
+
+            const missing = Object.entries(values)
+                .filter(([key, value]) => key !== "GOOGLE_CALENDAR_ID" && !value)
+                .map(([key]) => key);
+
+            if (missing.length > 0) {
+                return { ok: false, error: `Missing required fields: ${missing.join(", ")}` };
+            }
+
+            writeUserEnvFile(values);
+            finished = true;
+            cleanup();
+            resolve(true);
+            setupWindow.close();
+            return { ok: true };
+        });
+
+        ipcMain.handle("env:cancel", async () => {
+            finished = true;
+            cleanup();
+            resolve(false);
+            setupWindow.close();
+            return { ok: true };
+        });
+
+        setupWindow.on("closed", () => {
+            if (!finished) {
+                cleanup();
+                resolve(false);
+            }
+        });
+
+        setupWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(buildEnvSetupHtml())}`);
+    });
+}
 
 const storePath = path.join(app.getPath("userData"), "lead-tracker-store.json");
 
@@ -267,10 +457,24 @@ function createWindow() {
         }
     });
 
-    win.loadURL("http://localhost:5173");
+    const devUrl = process.env.VITE_DEV_SERVER_URL;
+    if (!app.isPackaged && devUrl) {
+        win.loadURL(devUrl);
+    } else {
+        win.loadFile(path.join(app.getAppPath(), "dist", "index.html"));
+    }
 }
 
-app.whenReady().then(createWindow);
+app.whenReady().then(async () => {
+    if (getMissingEnvKeys().length > 0) {
+        const saved = await openEnvSetupWindow();
+        if (!saved) {
+            app.quit();
+            return;
+        }
+    }
+    createWindow();
+});
 
 ipcMain.handle("google:login", async () => {
     const result = await googleLogin();
