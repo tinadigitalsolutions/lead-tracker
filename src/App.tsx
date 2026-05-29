@@ -318,7 +318,7 @@ export default function App() {
 
                   <td>
                     <input
-                      type="text"
+                      type="date"
                       value={draft.lastInteraction}
                       onChange={(event) =>
                         lead.rowNumber &&
