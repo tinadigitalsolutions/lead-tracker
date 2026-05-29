@@ -10,6 +10,7 @@ export interface Lead {
   state: LeadState;
   followUpScheduled: string;
   customer?: string;
+  instagramHandle?: string;
   scheduleDays?: number;
 }
 
@@ -33,6 +34,7 @@ declare global {
       updateLeadLastInteraction: (rowNumber: number, lastInteraction: string, sheetName: string) => Promise<{ ok: boolean }>;
       updateLeadInteractionType: (rowNumber: number, interactionType: InteractionType, sheetName: string) => Promise<{ ok: boolean }>;
       updateLeadCustomer: (rowNumber: number, customer: string, sheetName: string) => Promise<{ ok: boolean }>;
+      updateLeadInstagramHandle: (rowNumber: number, instagramHandle: string, sheetName: string) => Promise<{ ok: boolean }>;
       removeFollowUp: (lead: Lead, sheetName: string) => Promise<{ ok: boolean }>;
     };
   }

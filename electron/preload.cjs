@@ -17,6 +17,8 @@ contextBridge.exposeInMainWorld("api", {
     ipcRenderer.invoke("sheets:updateLeadInteractionType", rowNumber, interactionType, sheetName),
   updateLeadCustomer: (rowNumber, customer, sheetName) =>
     ipcRenderer.invoke("sheets:updateLeadCustomer", rowNumber, customer, sheetName),
+  updateLeadInstagramHandle: (rowNumber, instagramHandle, sheetName) =>
+    ipcRenderer.invoke("sheets:updateLeadInstagramHandle", rowNumber, instagramHandle, sheetName),
   removeFollowUp: (lead, sheetName) =>
     ipcRenderer.invoke("calendar:removeFollowUp", lead, sheetName)
 });

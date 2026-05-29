@@ -302,6 +302,18 @@ export default function App() {
     }
   }
 
+  async function updateInstagramHandle(lead: Lead, instagramHandle: string) {
+    if (!lead.rowNumber) return;
+
+    try {
+      await window.api.updateLeadInstagramHandle(lead.rowNumber, instagramHandle, currentSheet);
+      clearDraft(lead.rowNumber);
+      setLeads(await window.api.listLeads(currentSheet));
+    } catch (err: any) {
+      setStatus(err.message || "Failed to update Instagram handle.");
+    }
+  }
+
   async function updateState(lead: Lead, state: LeadState) {
     if (!lead.rowNumber) return;
 
@@ -506,7 +518,7 @@ export default function App() {
           <thead>
             <tr>
               <th className="sortable" onClick={() => toggleSort("name")}>Name {sortIcon("name")}</th>
-              <th className="sortable" onClick={() => toggleSort("customer")}>Customer {sortIcon("customer")}</th>
+              <th className="sortable" onClick={() => toggleSort("instagramHandle")}>Instagram Handle {sortIcon("instagramHandle")}</th>
               <th className="sortable" onClick={() => toggleSort("firstAdded")}>First Added {sortIcon("firstAdded")}</th>
               <th className="sortable" onClick={() => toggleSort("lastInteraction")}>Last Interaction {sortIcon("lastInteraction")}</th>
               <th className="sortable" onClick={() => toggleSort("interactionType")}>Interaction Type {sortIcon("interactionType")}</th>
@@ -542,9 +554,9 @@ export default function App() {
               <td>
                 <input
                   type="text"
-                  placeholder="Filter customer…"
-                  value={columnFilters.customer ?? ""}
-                  onChange={(e) => setColumnFilter("customer", e.target.value)}
+                  placeholder="Filter handle…"
+                  value={columnFilters.instagramHandle ?? ""}
+                  onChange={(e) => setColumnFilter("instagramHandle", e.target.value)}
                 />
               </td>
               <td>
@@ -600,7 +612,7 @@ export default function App() {
 
               return (
                 <tr key={lead.rowNumber ?? lead.name}>
-                  <td>
+                  <td style={{ width: "160px" }}>
                     <input
                       type="text"
                       value={draft.name}
@@ -609,18 +621,18 @@ export default function App() {
                       }
                       onBlur={(event) => updateName(lead, event.target.value)}
                       disabled={loading}
-                      style={{ width: "200px" }}
+                      style={{ width: "100%" }}
                     />
                   </td>
 
                   <td>
                     <input
                       type="text"
-                      value={draft.customer || ""}
+                      value={draft.instagramHandle || ""}
                       onChange={(event) =>
-                        lead.rowNumber && updateDraft(lead.rowNumber, "customer", event.target.value)
+                        lead.rowNumber && updateDraft(lead.rowNumber, "instagramHandle", event.target.value)
                       }
-                      onBlur={(event) => updateCustomer(lead, event.target.value)}
+                      onBlur={(event) => updateInstagramHandle(lead, event.target.value)}
                       disabled={loading}
                       style={{ width: "100%" }}
                     />

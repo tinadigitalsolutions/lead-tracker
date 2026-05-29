@@ -89,7 +89,7 @@ async function listLeads(auth, sheetName = "Leads") {
 
     const res = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: `${sheetName}!A2:G`
+        range: `${sheetName}!A2:H`
     });
 
     const rows = res.data.values || [];
@@ -103,7 +103,8 @@ async function listLeads(auth, sheetName = "Leads") {
             interactionType: row[3] || "PM",
             state: row[4] || "Cold",
             followUpScheduled: row[5] || "NO",
-            customer: row[6] || ""
+            customer: row[6] || "",
+            instagramHandle: row[7] || ""
         }))
         .filter((lead) => lead.name.trim() !== "");
 }
@@ -124,11 +125,26 @@ async function getOrCreateSheet(auth, sheetName) {
 
     try {
         // Try to read from the sheet to see if it exists
-        await sheets.spreadsheets.values.get({
+        const headerRes = await sheets.spreadsheets.values.get({
             spreadsheetId: process.env.GOOGLE_SHEET_ID,
-            range: `${sheetName}!A1`
+            range: `${sheetName}!A1:H1`
         });
-        // If we get here, the sheet exists
+        
+        const headers = headerRes.data.values?.[0] || [];
+        
+        // Check if Instagram Handle header exists in column H
+        if (!headers[7] || headers[7] !== "Instagram Handle") {
+            // Add the Instagram Handle header
+            await sheets.spreadsheets.values.update({
+                spreadsheetId: process.env.GOOGLE_SHEET_ID,
+                range: `${sheetName}!H1`,
+                valueInputOption: "RAW",
+                requestBody: {
+                    values: [["Instagram Handle"]]
+                }
+            });
+        }
+        
         return;
     } catch (err) {
         // Sheet doesn't exist, create it
@@ -150,7 +166,7 @@ async function getOrCreateSheet(auth, sheetName) {
         // Add headers
         await sheets.spreadsheets.values.update({
             spreadsheetId: process.env.GOOGLE_SHEET_ID,
-            range: `${sheetName}!A1:G1`,
+            range: `${sheetName}!A1:H1`,
             valueInputOption: "RAW",
             requestBody: {
                 values: [[
@@ -160,7 +176,8 @@ async function getOrCreateSheet(auth, sheetName) {
                     "Interaction Type",
                     "State",
                     "Follow-up Scheduled",
-                    "Customer"
+                    "Customer",
+                    "Instagram Handle"
                 ]]
             }
         });
@@ -186,6 +203,19 @@ async function updateCustomer(auth, rowNumber, value, sheetName = "Leads") {
     await sheets.spreadsheets.values.update({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
         range: `${sheetName}!G${rowNumber}`,
+        valueInputOption: "RAW",
+        requestBody: {
+            values: [[value]]
+        }
+    });
+}
+
+async function updateInstagramHandle(auth, rowNumber, value, sheetName = "Leads") {
+    const sheets = google.sheets({ version: "v4", auth });
+
+    await sheets.spreadsheets.values.update({
+        spreadsheetId: process.env.GOOGLE_SHEET_ID,
+        range: `${sheetName}!H${rowNumber}`,
         valueInputOption: "RAW",
         requestBody: {
             values: [[value]]
@@ -279,7 +309,7 @@ ipcMain.handle("sheets:addLead", async (_event, lead, sheetName) => {
     // Read all rows to find the next available row number
     const allRes = await sheets.spreadsheets.values.get({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: `${sheetName}!A:G`
+        range: `${sheetName}!A:H`
     });
     const allRows = allRes.data.values || [];
     const nextRowNumber = allRows.length + 1;
@@ -287,7 +317,7 @@ ipcMain.handle("sheets:addLead", async (_event, lead, sheetName) => {
     // Use update with the calculated row number instead of append
     await sheets.spreadsheets.values.update({
         spreadsheetId: process.env.GOOGLE_SHEET_ID,
-        range: `${sheetName}!A${nextRowNumber}:G${nextRowNumber}`,
+        range: `${sheetName}!A${nextRowNumber}:H${nextRowNumber}`,
         valueInputOption: "RAW",
         requestBody: {
             values: [[
@@ -297,7 +327,8 @@ ipcMain.handle("sheets:addLead", async (_event, lead, sheetName) => {
                 lead.interactionType,
                 lead.state,
                 "NO",
-                lead.customer || ""
+                lead.customer || "",
+                ""
             ]]
         }
     });
@@ -364,6 +395,12 @@ ipcMain.handle("sheets:updateLeadInteractionType", async (_event, rowNumber, int
 ipcMain.handle("sheets:updateLeadCustomer", async (_event, rowNumber, customer, sheetName) => {
     const auth = getAuthedClient();
     await updateCustomer(auth, rowNumber, customer, sheetName);
+    return { ok: true };
+});
+
+ipcMain.handle("sheets:updateLeadInstagramHandle", async (_event, rowNumber, instagramHandle, sheetName) => {
+    const auth = getAuthedClient();
+    await updateInstagramHandle(auth, rowNumber, instagramHandle, sheetName);
     return { ok: true };
 });
 

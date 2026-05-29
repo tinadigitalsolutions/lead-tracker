@@ -8,6 +8,7 @@
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "build": "vite build && tsc -p tsconfig.electron.json",
     "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac:portable": "npm run build && electron-builder --mac",
     "dist:mac:x64": "npm run build && electron-builder --mac --x64",
     "dist:mac:universal": "npm run build && electron-builder --mac --universal",
     "dist:mac:signed": "npm run build && electron-builder --mac --universal",
@@ -46,7 +47,6 @@
     "mac": {
       "category": "public.app-category.productivity",
       "target": [
-        "dmg",
         "zip"
       ],
       "hardenedRuntime": true,
@@ -55,6 +55,7 @@
       "entitlementsInherit": "build/entitlements.mac.plist"
     },
     "afterSign": "build/notarize.cjs",
+    "afterAllArtifactBuild": "build/create-launcher.cjs",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
