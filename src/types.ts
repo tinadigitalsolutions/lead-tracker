@@ -17,7 +17,7 @@ declare global {
   interface Window {
     api: {
       googleLogin: () => Promise<{ ok: boolean; email?: string }>;
-      getAuthStatus: () => Promise<{ google: boolean; email?: string }>;
+      getAuthStatus: () => Promise<{ google: boolean; email?: string; isFirstLaunch?: boolean }>;
       getSheets: () => Promise<string[]>;
       listLeads: (sheetName: string) => Promise<Lead[]>;
       addLead: (lead: {

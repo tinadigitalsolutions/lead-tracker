@@ -33,6 +33,7 @@ export default function App() {
   const [newCustomerMode, setNewCustomerMode] = useState<"select" | "new">("select");
 
   const [loading, setLoading] = useState(false);
+  const [firstLaunchPromptShown, setFirstLaunchPromptShown] = useState(false);
 
   // Per-row days override for scheduling
   const [daysOverride, setDaysOverride] = useState<Record<number, number>>({});
@@ -122,6 +123,18 @@ export default function App() {
     setGoogleConnected(auth.google);
     setEmail(auth.email || "");
 
+    // On first launch, prompt user to connect Google
+    if (auth.isFirstLaunch && !firstLaunchPromptShown) {
+      setFirstLaunchPromptShown(true);
+      const shouldConnect = window.confirm(
+        "Welcome to Lead Tracker! Connect your Google account to get started?"
+      );
+      if (shouldConnect) {
+        await connectGoogle();
+        return; // connectGoogle will call refresh internally
+      }
+    }
+
     if (auth.google) {
       try {
         const availableSheets = await window.api.getSheets();
@@ -144,7 +157,7 @@ export default function App() {
 
   useEffect(() => {
     refresh();
-  }, [currentSheet]);
+  }, [currentSheet, firstLaunchPromptShown]);
 
   async function connectGoogle() {
     setLoading(true);

@@ -6,7 +6,14 @@
   "type": "module",
   "scripts": {
     "dev": "concurrently \"vite\" \"wait-on http://localhost:5173 && electron .\"",
-    "build": "vite build && tsc -p tsconfig.electron.json"
+    "build": "vite build && tsc -p tsconfig.electron.json",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:mac:x64": "npm run build && electron-builder --mac --x64",
+    "dist:mac:universal": "npm run build && electron-builder --mac --universal",
+    "dist:mac:signed": "npm run build && electron-builder --mac --universal",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:linux": "npm run build && electron-builder --linux",
+    "dist": "npm run build && electron-builder -m"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^4.3.4",
@@ -19,6 +26,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@electron/notarize": "^3.1.1",
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.2",
     "@types/react": "^18.3.12",
@@ -35,6 +43,18 @@
   "build": {
     "appId": "com.example.leadtracker",
     "productName": "Lead Tracker",
+    "mac": {
+      "category": "public.app-category.productivity",
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist"
+    },
+    "afterSign": "build/notarize.cjs",
     "files": [
       "dist/**/*",
       "dist-electron/**/*",
@@ -42,6 +62,9 @@
     ],
     "directories": {
       "output": "release"
+    },
+    "extraMetadata": {
+      "main": "dist-electron/electron/main.js"
     }
   }
 }

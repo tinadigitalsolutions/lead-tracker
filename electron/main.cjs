@@ -243,11 +243,19 @@ function createWindow() {
 app.whenReady().then(createWindow);
 
 ipcMain.handle("google:login", async () => {
-    return await googleLogin();
+    const result = await googleLogin();
+    // Mark first launch as complete when login succeeds
+    store.set("firstLaunchDone", true);
+    return result;
 });
 
 ipcMain.handle("google:status", async () => {
-    return { google: Boolean(store.get("googleTokens")) };
+    const hasTokens = Boolean(store.get("googleTokens"));
+    const firstLaunchDone = store.get("firstLaunchDone");
+    return { 
+        google: hasTokens,
+        isFirstLaunch: !firstLaunchDone && !hasTokens
+    };
 });
 
 ipcMain.handle("sheets:getSheets", async () => {
