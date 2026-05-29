@@ -96,7 +96,8 @@ button.active {
 
 .toolbar {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: 14px;
   padding: 14px;
   margin-bottom: 14px;
@@ -169,6 +170,47 @@ select {
   padding: 36px;
 }
 
+.schedule-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.days-input {
+  width: 52px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 5px 6px;
+  font: inherit;
+  font-size: 13px;
+  text-align: center;
+  background: white;
+  color: #111827;
+}
+
+.days-input:disabled {
+  background: #f9fafb;
+  color: #6b7280;
+}
+
+.days-label {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+button.remove-followup {
+  padding: 6px 9px;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  background: #fef2f2;
+  font-size: 13px;
+}
+
+button.remove-followup:hover:not(:disabled) {
+  background: #fee2e2;
+}
+
 input[type="text"] {
   border: 1px solid #d1d5db;
   border-radius: 6px;
@@ -183,3 +225,74 @@ input[type="text"]:disabled {
   background: #f9fafb;
   color: #6b7280;
 }
+
+/* Sortable column headers */
+th.sortable {
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+}
+
+th.sortable:hover {
+  background: #f0f1f3;
+}
+
+.sort-icon {
+  font-size: 11px;
+  color: #c4c9d4;
+  margin-left: 2px;
+}
+
+.sort-icon.active {
+  color: #111827;
+}
+
+/* Filter sub-row */
+.filter-row td {
+  background: #f9fafb;
+  padding: 6px 14px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.filter-row input[type="text"] {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  padding: 5px 7px;
+  font: inherit;
+  font-size: 13px;
+  background: white;
+  color: #111827;
+}
+
+.filter-row select {
+  font-size: 13px;
+}
+
+/* State column colour coding */
+.state-cell {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.state-select {
+  border: none;
+  border-radius: 999px;
+  padding: 5px 8px 5px 14px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  outline: none;
+  letter-spacing: 0.02em;
+}
+
+.state-select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.state-cold     .state-select { background: rgba(30,  64,  175, 0.15); color: #1e40af; }
+.state-warm     .state-select { background: rgba(202, 138,  4,  0.15); color: #854d0e; }
+.state-hot      .state-select { background: rgba(185, 28,  28,  0.15); color: #b91c1c; }
+.state-inactive .state-select { background: rgba(107, 114, 128, 0.15); color: #6b7280; }

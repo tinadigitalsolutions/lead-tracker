@@ -12,7 +12,7 @@ export async function createFollowUpEvent(auth: any, lead: Lead) {
   const calendar = google.calendar({ version: "v3", auth });
   const calendarId = process.env.GOOGLE_CALENDAR_ID || "primary";
 
-  const delayDays = getFollowUpDelayDays(lead.state);
+  const delayDays = lead.scheduleDays ?? getFollowUpDelayDays(lead.state);
   if (!delayDays) throw new Error("No follow-up delay for this state.");
 
   const start = new Date();

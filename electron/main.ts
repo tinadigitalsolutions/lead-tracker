@@ -120,7 +120,7 @@ ipcMain.handle("calendar:scheduleFollowUp", async (_event, lead: any) => {
   const scheduledAt = await createFollowUpEvent(auth, lead);
 
   if (lead.rowNumber) {
-    await updateLeadFollowUpScheduled(auth, lead.rowNumber, new Date().toISOString());
+    await updateLeadFollowUpScheduled(auth, lead.rowNumber, scheduledAt);
   }
 
   return { ok: true, scheduledAt };

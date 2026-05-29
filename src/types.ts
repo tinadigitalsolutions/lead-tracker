@@ -1,5 +1,5 @@
 export type LeadState = "Cold" | "Warm" | "Hot" | "Inactive";
-export type InteractionType = "PM" | "Post Comment";
+export type InteractionType = string;
 
 export interface Lead {
   rowNumber?: number;
@@ -9,6 +9,8 @@ export interface Lead {
   interactionType: InteractionType;
   state: LeadState;
   followUpScheduled: string;
+  customer?: string;
+  scheduleDays?: number;
 }
 
 declare global {
@@ -16,18 +18,22 @@ declare global {
     api: {
       googleLogin: () => Promise<{ ok: boolean; email?: string }>;
       getAuthStatus: () => Promise<{ google: boolean; email?: string }>;
-      listLeads: () => Promise<Lead[]>;
+      getSheets: () => Promise<string[]>;
+      listLeads: (sheetName: string) => Promise<Lead[]>;
       addLead: (lead: {
         name: string;
         interactionType: InteractionType;
         state: LeadState;
         lastInteraction?: string;
-      }) => Promise<{ status: "added" | "updated" }>;
-      scheduleFollowUp: (lead: Lead) => Promise<{ ok: boolean; scheduledAt: string }>;
-      updateLeadState: (rowNumber: number, state: LeadState) => Promise<{ ok: boolean }>;
-      updateLeadName: (rowNumber: number, name: string) => Promise<{ ok: boolean }>;
-      updateLeadLastInteraction: (rowNumber: number, lastInteraction: string) => Promise<{ ok: boolean }>;
-      updateLeadInteractionType: (rowNumber: number, interactionType: InteractionType) => Promise<{ ok: boolean }>;
+        customer?: string;
+      }, sheetName: string) => Promise<{ status: "added" | "updated" }>;
+      scheduleFollowUp: (lead: Lead, sheetName: string) => Promise<{ ok: boolean; scheduledAt: string }>;
+      updateLeadState: (rowNumber: number, state: LeadState, sheetName: string) => Promise<{ ok: boolean }>;
+      updateLeadName: (rowNumber: number, name: string, sheetName: string) => Promise<{ ok: boolean }>;
+      updateLeadLastInteraction: (rowNumber: number, lastInteraction: string, sheetName: string) => Promise<{ ok: boolean }>;
+      updateLeadInteractionType: (rowNumber: number, interactionType: InteractionType, sheetName: string) => Promise<{ ok: boolean }>;
+      updateLeadCustomer: (rowNumber: number, customer: string, sheetName: string) => Promise<{ ok: boolean }>;
+      removeFollowUp: (lead: Lead, sheetName: string) => Promise<{ ok: boolean }>;
     };
   }
 }
